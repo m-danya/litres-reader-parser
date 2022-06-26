@@ -1,5 +1,4 @@
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from tqdm import tqdm
 import math
@@ -56,7 +55,7 @@ def parse_args():
     parser.add_argument(
         '--timeout',
         type=int,
-        default=1,
+        default=10,
         help='Timeout for parsing ЛитРес'
     )
     return parser.parse_args()
@@ -160,7 +159,7 @@ def get_books_db(book_links, limit, start_with, timeout):
             except AttributeError as e:
                 pass
             pages = 0
-            published = '???'
+            published = 'never'
             try:
                 info_block = soup.find('ul',
                                        {'class': 'biblio_book_info_detailed_left'})
@@ -185,7 +184,7 @@ def get_books_db(book_links, limit, start_with, timeout):
             }
             books_db.append(book)
             time.sleep(timeout)
-        save_pickle_object(books_db, f'books_db_FULL')
+        save_pickle_object(books_db, f'books_db_{len(books_db)}')
     except BaseException as e:  # even the KeyboardInterrupt
         save_pickle_object(books_db, f'books_db_{len(books_db)}')
         alarmer('Couldn\'t dump all the books info! (but info'
