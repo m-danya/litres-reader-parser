@@ -18,8 +18,10 @@ def main():
     book_links = (
         read_pickle_object('book_links') if args.cached else get_books_list()
     )
-    seconds = ((2 + args.timeout) * len(book_links))
-    print('book_links are ready for parsing')
+    to_be_processed = len(book_links)
+    to_be_processed -= args.start_with
+    seconds = (0.5 + args.timeout) * to_be_processed
+    print(f'book_links are ready for parsing: list of size {len(book_links)}')
     alarmer(f'started parsing. For parsing (without limits) the time'
             ' estimation is'
             f' {(seconds / 60):.2f}'
@@ -28,7 +30,9 @@ def main():
     books_db = get_books_db(
         book_links, args.limit, args.start_with, args.timeout
     )
-    alarmer(f'RESULT: {len(books_db)} books were parsed')
+    alarmer(f'RESULT: {len(books_db)} books were parsed'
+            f' => So books from [{args.start_with},'
+            f' {args.start_with + len(books_db) - 1}] are covered')
     print_top_books(books_db)
 
 
@@ -50,6 +54,7 @@ def parse_args():
     parser.add_argument(
         '--start-with',
         type=int,
+        default=0,
         help='Start with the given offset'
     )
     parser.add_argument(
@@ -86,8 +91,10 @@ def get_books_list():
         for page in tqdm(range(1, math.ceil(books_n / 100) + 1)):
             page_url = book_list_url + str(page)
             driver.get(page_url)
-            for book_button in driver.find_elements(By.PARTIAL_LINK_TEXT,
-                                                    'ОТКРЫТЬ НА LITRES'):
+            for book_button in driver.find_elements(
+                    By.PARTIAL_LINK_TEXT,
+                    'ОТКРЫТЬ НА LITRES'
+            ):
                 book_links.append(book_button.get_attribute("href"))
             time.sleep(0.5)
     driver.close()
@@ -137,8 +144,10 @@ def get_books_db(book_links, limit, start_with, timeout):
 
             soup = BeautifulSoup(r.text, 'html.parser')
             try:
-                title = soup.find('div', {
-                    'class': 'biblio_book_name biblio-book__title-block'})
+                title = soup.find(
+                    'div',
+                    {'class': 'biblio_book_name biblio-book__title-block'}
+                )
                 title = title.h1.text
             except Exception as e:
                 alarmer(f"Couldn't find a book name! {book_link=}")
@@ -165,8 +174,10 @@ def get_books_db(book_links, limit, start_with, timeout):
             pages = 0
             published = 'never'
             try:
-                info_block = soup.find('ul',
-                                       {'class': 'biblio_book_info_detailed_left'})
+                info_block = soup.find(
+                    'ul',
+                    {'class': 'biblio_book_info_detailed_left'}
+                )
                 info_lis = info_block.findAll('li')
                 for info in info_lis:
                     if 'Дата выхода на ЛитРес' in info.text:
@@ -197,8 +208,9 @@ def get_books_db(book_links, limit, start_with, timeout):
         save_pickle_object(books_db, f'books_db_{len(books_db)}')
     except BaseException as e:  # even the KeyboardInterrupt
         save_pickle_object(books_db, f'books_db_{len(books_db)}')
-        alarmer('Couldn\'t dump all the books info! (but info'
-                f' about {len(books_db)} books was saved)')
+        alarmer('Couldn\'t dump all the books info! But info'
+                f' about {len(books_db)} books was saved'
+        )
         print(e)
         print(traceback.format_exc())
     return books_db
