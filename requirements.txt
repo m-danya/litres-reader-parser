@@ -1,3 +1,5 @@
 selenium
-bs4
+beautifulsoup4
 tqdm
+requests
+argparse
