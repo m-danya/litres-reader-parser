@@ -54,7 +54,7 @@ def parse_args():
     )
     parser.add_argument(
         '--timeout',
-        type=int,
+        type=float,
         default=10,
         help='Timeout for parsing ЛитРес'
     )
@@ -177,6 +177,11 @@ def get_books_db(book_links, limit, start_with, timeout):
                         pages = int(pages)
             except AttributeError as e:
                 pass
+            audiobooks = soup.find(
+                'div',
+                {'class': 'biblio_book_other_carriers__item'}
+            )
+            audiobooks = bool(audiobooks)
             book = {
                 'author': author,
                 'title': title,
@@ -184,7 +189,8 @@ def get_books_db(book_links, limit, start_with, timeout):
                 'mean_rating': mean,
                 'n_votes': n_votes,
                 'link': book_link,
-                'published': published
+                'published': published,
+                'has_audiobook': audiobooks,
             }
             books_db.append(book)
             time.sleep(timeout)
