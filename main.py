@@ -155,7 +155,7 @@ def get_books_db(book_links, limit, start_with, timeout):
                 mean = rating_div.findChild("div", {'class': "rating-number"}).text
                 mean = float(mean.replace(',', '.'))
                 n_votes = rating_div.findChild("div", {'class': "votes-count"}).text
-                n_votes = int(n_votes)
+                n_votes = int(n_votes.replace(' ', ''))
             except AttributeError as e:
                 pass
             pages = 0
