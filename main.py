@@ -20,13 +20,13 @@ def main():
         read_pickle_object('book_links') if args.cached else get_books_list()
     )
     print('book_links are ready for parsing')
-    print(f'started parsing. For parsing without limits the time estimation is'
+    alarmer(f'started parsing. For parsing without limits the time estimation is'
           f' {(2 * len(book_links) + args.timeout * len(book_links) / 10) / 60}'
           f' mins')
     books_db = get_books_db(
         book_links, args.limit, args.start_with, args.timeout
     )
-    print(f'SUCCESS: {len(books_db)} books were parsed')
+    alarmer(f'SUCCESS: {len(books_db)} books were parsed')
     print_top_books(books_db)
 
 
@@ -106,13 +106,33 @@ def get_books_db(book_links, limit, start_with, timeout):
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) '
                               'AppleWebKit/537.36 (KHTML, like Gecko) '
                               'Chrome/39.0.2171.95 Safari/537.36'}
-            r = requests.get(book_link, headers=headers, timeout=15)
-            if r.status_code != 200:
-                if r.status_code == 400:
-                    continue
+            tries = 0
+            ok = False
+            is_404 = False
+            while tries < 5 and not ok:
+                r = requests.get(book_link, headers=headers, timeout=15)
+                if r.status_code != 200:
+                    if r.status_code == 404:
+                        print(f'404: {book_link}')
+                        is_404 = True
+                        ok = True
+                        break
+                    # smth bad happen, try again in a moment
+                    tries += 1
+                    print(f'status code is {r.status_code}! Full html:'
+                          f'\n{r.text}')
+                    time.sleep(5)
                 else:
-                    print(f'status code is {r.status_code}! Full html:\n{r.text}')
-                    break
+                    ok = True
+            if not ok:
+                alarmer('STRANGE STATUS CODE for 5 times in a row!')
+                continue
+            if tries > 0:
+                alarmer('reestablished')
+
+            if is_404:
+                continue
+
             soup = BeautifulSoup(r.text, 'html.parser')
             try:
                 title = soup.find('div', {
@@ -121,7 +141,7 @@ def get_books_db(book_links, limit, start_with, timeout):
                 author = soup.find('div', {'class': 'biblio_book_author'})
                 author = author.a.span.text
             except Exception as e:
-                print(f"Couldn't find a book name or an author! {book_link=}")
+                alarmer(f"Couldn't find a book name or an author! {book_link=}")
                 print(e)
                 print(traceback.format_exc())
                 break  # something is definitely goes wrong
@@ -166,7 +186,7 @@ def get_books_db(book_links, limit, start_with, timeout):
         save_pickle_object(books_db, f'books_db_FULL')
     except BaseException as e:  # even the KeyboardInterrupt
         save_pickle_object(books_db, f'books_db_{len(books_db)}')
-        print('Couldn\'t dump all the books info! (but info'
+        alarmer('Couldn\'t dump all the books info! (but info'
               f' about {len(books_db)} books was saved)')
         print(e)
         print(traceback.format_exc())
@@ -199,6 +219,17 @@ def print_top_books(books_db):
     print(f'Top-{top_n} books: ')
     for book in sorted(books_db, key=lambda book: -book['n_votes'])[:top_n]:
         print(book)
+
+
+def alarmer(msg):
+    print(msg)
+    try:
+        with open('ALARMER_API_KEY.txt') as f:
+            api_key = f.read()
+        requests.get(
+            f'https://alarmerbot.ru/?key={api_key}&message={msg}')
+    except Exception as e:
+        pass
 
 
 if __name__ == "__main__":
