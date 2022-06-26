@@ -140,13 +140,17 @@ def get_books_db(book_links, limit, start_with, timeout):
                 title = soup.find('div', {
                     'class': 'biblio_book_name biblio-book__title-block'})
                 title = title.h1.text
-                author = soup.find('div', {'class': 'biblio_book_author'})
-                author = author.a.span.text
             except Exception as e:
-                alarmer(f"Couldn't find a book name or an author! {book_link=}")
+                alarmer(f"Couldn't find a book name! {book_link=}")
                 print(e)
                 print(traceback.format_exc())
                 break  # something is definitely goes wrong
+            author = '—'
+            try:
+                author = soup.find('div', {'class': 'biblio_book_author'})
+                author = author.text[len('Автор:'):]
+            except Exception as e:
+                alarmer(f"Couldn't find the author of the book! {book_link=}")
             mean = 0
             n_votes = 0
             try:
@@ -211,6 +215,7 @@ def read_pickle_object(prefix):
     while prefix not in paths[idx].name:
         idx -= 1
     with open(paths[idx], 'rb') as f:
+        print(f'Using {f.name} as a book_links list')
         obj = pickle.load(f)
     return obj
 
