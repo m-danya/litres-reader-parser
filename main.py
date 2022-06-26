@@ -19,14 +19,17 @@ def main():
     book_links = (
         read_pickle_object('book_links') if args.cached else get_books_list()
     )
+    seconds = ((2 + args.timeout) * len(book_links))
     print('book_links are ready for parsing')
-    alarmer(f'started parsing. For parsing without limits the time estimation is'
-          f' {(2 * len(book_links) + args.timeout * len(book_links) / 10) / 60}'
-          f' mins')
+    alarmer(f'started parsing. For parsing (without limits) the time'
+            ' estimation is'
+            f' {(seconds / 60):.2f}'
+            f' mins = {(seconds / 3600):.2f} hours'
+    )
     books_db = get_books_db(
         book_links, args.limit, args.start_with, args.timeout
     )
-    alarmer(f'SUCCESS: {len(books_db)} books were parsed')
+    alarmer(f'RESULT: {len(books_db)} books were parsed')
     print_top_books(books_db)
 
 
@@ -53,8 +56,8 @@ def parse_args():
     parser.add_argument(
         '--timeout',
         type=int,
-        default=10,
-        help='Timeout for parsing Литрес. It is used every 10th book'
+        default=1,
+        help='Timeout for parsing ЛитРес'
     )
     return parser.parse_args()
 
@@ -110,7 +113,7 @@ def get_books_db(book_links, limit, start_with, timeout):
             ok = False
             is_404 = False
             while tries < 5 and not ok:
-                r = requests.get(book_link, headers=headers, timeout=15)
+                r = requests.get(book_link, headers=headers, timeout=60)
                 if r.status_code != 200:
                     if r.status_code == 404:
                         print(f'404: {book_link}')
@@ -181,13 +184,12 @@ def get_books_db(book_links, limit, start_with, timeout):
                 'published': published
             }
             books_db.append(book)
-            if (i + 1) % 10 == 0:
-                time.sleep(timeout)
+            time.sleep(timeout)
         save_pickle_object(books_db, f'books_db_FULL')
     except BaseException as e:  # even the KeyboardInterrupt
         save_pickle_object(books_db, f'books_db_{len(books_db)}')
         alarmer('Couldn\'t dump all the books info! (but info'
-              f' about {len(books_db)} books was saved)')
+                f' about {len(books_db)} books was saved)')
         print(e)
         print(traceback.format_exc())
     return books_db
@@ -221,13 +223,15 @@ def print_top_books(books_db):
         print(book)
 
 
+# Send a message to Telegram to notify me
 def alarmer(msg):
     print(msg)
     try:
         with open('ALARMER_API_KEY.txt') as f:
             api_key = f.read()
         requests.get(
-            f'https://alarmerbot.ru/?key={api_key}&message={msg}')
+            f'https://alarmerbot.ru/?key={api_key}&message={msg}'
+        )
     except Exception as e:
         pass
 
