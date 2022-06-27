@@ -111,6 +111,7 @@ def get_books_db(book_links, limit, start_with, timeout):
     try:
         for i, book_link in (pbar := tqdm(enumerate(book_links))):
             pbar.set_description(book_link)
+            time.sleep(timeout)
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) '
                               'AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -204,7 +205,6 @@ def get_books_db(book_links, limit, start_with, timeout):
                 'has_audiobook': audiobooks,
             }
             books_db.append(book)
-            time.sleep(timeout)
         save_pickle_object(books_db, f'books_db_{len(books_db)}')
     except BaseException as e:  # even the KeyboardInterrupt
         save_pickle_object(books_db, f'books_db_{len(books_db)}')
