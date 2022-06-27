@@ -150,10 +150,10 @@ def get_books_db(book_links, limit, start_with, timeout):
                 )
                 title = title.h1.text
             except Exception as e:
-                alarmer(f"Couldn't find a book name! {book_link=}")
+                print(f"Couldn't find a book name! {book_link=}")
                 print(e)
                 print(traceback.format_exc())
-                break  # something is definitely goes wrong
+                continue  # probably, this book was deleted
             author = '—'
             try:
                 author = soup.find('div', {'class': 'biblio_book_author'})
