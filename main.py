@@ -242,8 +242,16 @@ def read_pickle_object(prefix):
 
 def print_top_books(books_db):
     top_n = 25
-    print(f'Top-{top_n} books: ')
-    for book in sorted(books_db, key=lambda book: -book['n_votes'])[:top_n]:
+    print(f"Top-{top_n} books: ")
+    for book in sorted(books_db, key=lambda book: -book["n_votes"])[:top_n]:
+        print(book)
+
+
+def print_books_by_query(books_db):
+    db_no_ab = [
+        x for x in books_db if (not x["has_audiobook"] and x["pages"] < 15)
+    ]
+    for book in sorted(books_db, key=lambda book: -book["n_votes"]):
         print(book)
 
 
