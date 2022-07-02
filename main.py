@@ -36,7 +36,6 @@ def main():
         f" => So books from [{args.start_with},"
         f" {args.start_with + len(books_db) - 1}] are covered"
     )
-    print_top_books(books_db)
 
 
 def parse_args():
@@ -58,7 +57,7 @@ def parse_args():
         "--start-with", type=int, default=0, help="Start with the given offset"
     )
     parser.add_argument(
-        "--timeout", type=float, default=10, help="Timeout for parsing ЛитРес"
+        "--timeout", type=float, default=120, help="Timeout for parsing ЛитРес"
     )
     return parser.parse_args()
 
@@ -238,21 +237,6 @@ def read_pickle_object(prefix):
         print(f"Using {f.name} as a book_links list")
         obj = pickle.load(f)
     return obj
-
-
-def print_top_books(books_db):
-    top_n = 25
-    print(f"Top-{top_n} books: ")
-    for book in sorted(books_db, key=lambda book: -book["n_votes"])[:top_n]:
-        print(book)
-
-
-def print_books_by_query(books_db):
-    db_no_ab = [
-        x for x in books_db if (not x["has_audiobook"] and x["pages"] < 15)
-    ]
-    for book in sorted(books_db, key=lambda book: -book["n_votes"]):
-        print(book)
 
 
 # Send a message to Telegram to notify me
