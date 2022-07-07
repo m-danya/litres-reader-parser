@@ -23,7 +23,8 @@ def parse_args():
         type=Path,
         required=True,
     )
-    parser.add_argument("--pages-limit", type=int, default=0)
+    parser.add_argument("--pages-min", type=int, default=0)
+    parser.add_argument("--pages-max", type=int, default=0)
     parser.add_argument(
         "--only-without-audiobooks",
         action="store_true",
@@ -59,8 +60,10 @@ def sort_books(books_db, args):
         books_db = [b for b in books_db if b["author"] not in unwanted_authors]
     if args.only_without_audiobooks:
         books_db = [b for b in books_db if not b["has_audiobook"]]
-    if args.pages_limit:
-        books_db = [b for b in books_db if b["pages"] <= args.pages_limit]
+    if args.pages_min:
+        books_db = [b for b in books_db if b["pages"] >= args.pages_min]
+    if args.pages_max:
+        books_db = [b for b in books_db if b["pages"] <= args.pages_max]
     print(
         f"{len(books_db)} books were chosen from"
         f" {full_length} to meet the criteria."

@@ -1,4 +1,5 @@
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from tqdm import tqdm
 import math
@@ -15,15 +16,28 @@ import argparse
 
 def main():
     args = parse_args()
+    if args.update_cached_list_and_notify_only:
+        cached_books = read_pickle_object("book_links")
+        new_books = get_books_list()
+        only_new_books = [b for b in new_books if b not in cached_books]
+        if len(only_new_books):
+            alarmer(f"Found {len(only_new_books)} new books!")
+        else:
+            print("No new books :(")
+        for b in only_new_books:
+            alarmer(b)
+        return
     book_links = (
         read_pickle_object("book_links") if args.cached else get_books_list()
     )
     to_be_processed = len(book_links)
     to_be_processed -= args.start_with
+    if args.limit and to_be_processed > args.limit:
+        to_be_processed = args.limit
     seconds = (0.5 + args.timeout) * to_be_processed
     print(f"book_links are ready for parsing: list of size {len(book_links)}")
     alarmer(
-        f"started parsing. For parsing (without limits) the time"
+        f"started parsing. The time"
         " estimation is"
         f" {(seconds / 60):.2f}"
         f" mins = {(seconds / 3600):.2f} hours"
@@ -59,11 +73,18 @@ def parse_args():
     parser.add_argument(
         "--timeout", type=float, default=120, help="Timeout for parsing ЛитРес"
     )
+    parser.add_argument(
+        "--update-cached-list-and-notify-only", action="store_true"
+    )
     return parser.parse_args()
 
 
 def get_books_list():
-    driver = webdriver.Chrome()
+    chrome_options = Options()
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--headless")
+    driver = webdriver.Chrome(options=chrome_options)
     book_list_urls = [
         "https://reader.litres.ru/vybor/small",
         "https://reader.litres.ru/vybor/big",
@@ -92,7 +113,7 @@ def get_books_list():
             ):
                 book_links.append(book_button.get_attribute("href"))
             time.sleep(0.5)
-    driver.close()
+    driver.quit()
     save_pickle_object(book_links, "book_links")
     return book_links
 
@@ -245,7 +266,9 @@ def alarmer(msg):
     try:
         with open("ALARMER_API_KEY.txt") as f:
             api_key = f.read()
-        requests.get(f"https://alarmerbot.ru/?key={api_key}&message={msg}")
+        requests.get(
+            f"https://alarmerbot.ru/?key={api_key}&message={msg}", timeout=60
+        )
     except Exception as e:
         pass
 
